@@ -31,11 +31,6 @@ export default function App() {
     };
   }, [setConnected, setPresence]);
 
-  // socket connection state & presence
-  // done here so header can show status
-  socket.on("connect", () => setConnected(true));
-  socket.on("disconnect", () => setConnected(false));
-  socket.on("presence:count", (n: number) => setPresence(n));
 
 const addRectangle = () => {
     const rect: Shape = {

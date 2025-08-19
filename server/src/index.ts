@@ -1,3 +1,4 @@
+// server/src/index.ts
 import express from "express";
 import http from "http";
 import cors from "cors";
@@ -7,10 +8,7 @@ const app = express();
 app.use(cors());
 
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }, // dev-friendly; lock this down in prod
-});
-
+const io = new Server(server, { cors: { origin: "*" } });
 
 type Shape = {
   id: string;
@@ -23,39 +21,34 @@ type Shape = {
   fill: string;
 };
 
-const shapes = new Map<string, Shape>();  // in-memory state
+const shapes = new Map<string, Shape>();
 
 io.on("connection", (socket) => {
-  // Send current state to the new client
   socket.emit("init", Array.from(shapes.values()));
-
-  // Presence (optional)
   io.emit("presence:count", io.engine.clientsCount);
 
-  // Rectangle added
-   socket.on("shape:add", (shape: Shape) => {
+  socket.on("shape:add", (shape: Shape) => {
     if (!shape?.id || !shape?.type) return;
     shapes.set(shape.id, shape);
-    socket.broadcast.emit("shape:add", shape);
+    io.emit("shape:add", shape); // send to everyone
+    console.log("SERVER add", shape.id);
   });
 
-  // Rectangle moved
   socket.on("shape:move", ({ id, x, y }: { id: string; x: number; y: number }) => {
-    const s = shapes.get(id);
-    if (!s) return;
-    s.x = x; s.y = y;
-    shapes.set(id, s);
-    socket.broadcast.emit("shape:move", { id, x, y });
-  });
+  const s = shapes.get(id);
+  if (!s) return;
+  s.x = x; s.y = y;
+  shapes.set(id, s);
+  io.emit("shape:move", { id, x, y });      // send to EVERYONE
+  console.log("SERVER move", id, x, y);     // <-- must print on drag
+});
 
   socket.on("disconnect", () => {
     io.emit("presence:count", io.engine.clientsCount);
   });
 });
 
-app.get("/", (_, res) => {
-  res.send("Realtime Canvas Server is running");
-});
+app.get("/", (_, res) => res.send("Realtime Canvas Server is running"));
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
