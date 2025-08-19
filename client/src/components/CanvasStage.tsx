@@ -18,7 +18,7 @@ function throttle<T extends (...args: any[]) => void>(fn: T, wait = 30) {
 }
 
 export default function CanvasStage() {
-  const { rectangles, moveRect, upsertRect, setAll } = useCanvasStore();
+  const { rectangles, moveRect, upsertRect, setAll, removeShape  } = useCanvasStore();
   const dims = useMemo(() => ({ w: 1000, h: 600 }), []);
 
   useEffect(() => {
@@ -34,17 +34,19 @@ export default function CanvasStage() {
       moveRect(id, x, y);
       console.log("CLIENT got move", id, x, y);
     };
+    const onDeleted = ({ id }: { id: string }) => removeShape(id); 
 
     socket.on("init", onInit);
-    socket.on("shape:add", onAdd);     // lowercase
-    socket.on("shape:move", onMove);   // lowercase
+    socket.on("shape:add", onAdd);    
+    socket.on("shape:move", onMove); 
+    socket.on("shape:deleted", onDeleted);  
 
     return () => {
       socket.off("init", onInit);
       socket.off("shape:add", onAdd);
       socket.off("shape:move", onMove);
     };
-  }, [moveRect, upsertRect, setAll]);
+  }, [moveRect, upsertRect, setAll,removeShape]);
 
   const throttledEmitMove = useRef(
     throttle((id: string, x: number, y: number) => {
@@ -54,6 +56,12 @@ export default function CanvasStage() {
   ).current;
 
   const items = Object.values(rectangles);
+   const handleDelete = (id: string) => {
+    // optional confirm:
+    // if (!window.confirm("Delete shape?")) return;
+    removeShape(id);
+    socket.emit("shape:delete", { id }); 
+  };
 
   return (
     <div className="w-full flex justify-center">
@@ -85,6 +93,8 @@ export default function CanvasStage() {
                   shadowBlur={4}
                   onDragMove={onDragMove}
                   onDragEnd={onDragEnd}
+                  onDblClick={() => handleDelete(r.id)}
+                  onDblTap={() => handleDelete(r.id)} 
                 />
               );
             }
@@ -99,6 +109,8 @@ export default function CanvasStage() {
                   draggable
                   onDragMove={onDragMove}
                   onDragEnd={onDragEnd}
+                  onDblClick={() => handleDelete(r.id)}
+                  onDblTap={() => handleDelete(r.id)} 
                 />
               );
             }

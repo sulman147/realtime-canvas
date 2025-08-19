@@ -18,6 +18,7 @@ type CanvasState = {
   upsertRect: (rect: Shape) => void;
   moveRect: (id: string, x: number, y: number) => void;
   setConnected: (v: boolean) => void;
+  removeShape: (id: string) => void;
   setPresence: (n: number) => void;
   setAll: (list: Shape[]) => void;
   removeAll: () => void;
@@ -33,6 +34,11 @@ export const useCanvasStore = create<CanvasState>((set) => ({
       const r = s.rectangles[id];
       if (!r) return {};
       return { rectangles: { ...s.rectangles, [id]: { ...r, x, y } } };
+    }),
+    removeShape: (id) =>                                    // ✅
+    set((s) => {
+      const { [id]: _removed, ...rest } = s.rectangles;
+      return { rectangles: rest };
     }),
   setConnected: (v) => set({ connected: v }),
   setPresence: (n) => set({ presence: n }),

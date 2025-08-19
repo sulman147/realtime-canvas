@@ -43,6 +43,13 @@ io.on("connection", (socket) => {
   console.log("SERVER move", id, x, y);     // <-- must print on drag
 });
 
+socket.on("shape:delete", ({ id }: { id: string }) => {
+    if (!id) return;
+    if (shapes.delete(id)) {
+      io.emit("shape:deleted", { id });
+    }
+  });
+
   socket.on("disconnect", () => {
     io.emit("presence:count", io.engine.clientsCount);
   });
